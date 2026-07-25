@@ -1,0 +1,22 @@
+{
+  "name": "iobroker.stoerungsmanager",
+  "version": "0.1.0",
+  "description": "Central fault and alarm management for ioBroker",
+  "author": "SystemSmart",
+  "homepage": "https://github.com/SystemSmart/ioBroker.stoerungsmanager",
+  "license": "MIT",
+  "main": "main.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": ["iobroker", "alarm", "fault", "notification", "telegram", "email"],
+  "dependencies": {
+    "@iobroker/adapter-core": "^3.3.2"
+  },
+  "devDependencies": {
+    "@iobroker/adapter-dev": "^1.4.0"
+  },
+  "scripts": {
+    "test": "node --check main.js"
+  }
+}

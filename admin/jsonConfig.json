@@ -1,0 +1,179 @@
+{
+  "i18n": true,
+  "type": "tabs",
+  "items": {
+    "general": {
+      "type": "panel",
+      "label": "Allgemein",
+      "items": {
+        "rootPath": {
+          "type": "text",
+          "label": "Basispfad",
+          "help": "Standard: 0_userdata.0.Stoerungen",
+          "sm": 12
+        },
+        "notifyActive": {
+          "type": "checkbox",
+          "label": "Neue Störungen melden",
+          "sm": 4
+        },
+        "notifyAcknowledged": {
+          "type": "checkbox",
+          "label": "Quittierungen melden",
+          "sm": 4
+        },
+        "notifyCleared": {
+          "type": "checkbox",
+          "label": "Behobene Störungen melden",
+          "sm": 4
+        }
+      }
+    },
+    "faultsTab": {
+      "type": "panel",
+      "label": "Störungen",
+      "items": {
+        "faults": {
+          "type": "table",
+          "label": "Überwachte Störungen",
+          "showSecondAddAt": 5,
+          "showFirstAddOnTop": true,
+          "clone": "id",
+          "export": true,
+          "import": true,
+          "uniqueColumns": ["id"],
+          "useCardFor": ["xs", "sm"],
+          "titleAttribute": "meldetext",
+          "items": [
+            {
+              "type": "checkbox",
+              "attr": "enabled",
+              "title": "Aktiv",
+              "width": "70px",
+              "default": true
+            },
+            {
+              "type": "text",
+              "attr": "id",
+              "title": "ID",
+              "width": "150px",
+              "default": "Neue_Stoerung",
+              "validator": "!!data.id"
+            },
+            {
+              "type": "objectId",
+              "attr": "sourceId",
+              "title": "Auslöser",
+              "types": ["state"],
+              "width": "260px",
+              "validator": "!!data.sourceId"
+            },
+            {
+              "type": "select",
+              "attr": "operator",
+              "title": "Bedingung",
+              "width": "150px",
+              "default": "true",
+              "options": [
+                {"label": "ist wahr", "value": "true"},
+                {"label": "ist falsch", "value": "false"},
+                {"label": "ist gesetzt", "value": "truthy"},
+                {"label": "ist nicht gesetzt", "value": "falsy"},
+                {"label": "gleich", "value": "eq"},
+                {"label": "ungleich", "value": "neq"},
+                {"label": "größer", "value": "gt"},
+                {"label": "größer/gleich", "value": "gte"},
+                {"label": "kleiner", "value": "lt"},
+                {"label": "kleiner/gleich", "value": "lte"},
+                {"label": "enthält", "value": "contains"}
+              ]
+            },
+            {
+              "type": "text",
+              "attr": "compareValue",
+              "title": "Vergleichswert",
+              "width": "130px"
+            },
+            {
+              "type": "text",
+              "attr": "meldegruppe",
+              "title": "Meldegruppe",
+              "width": "150px",
+              "default": "Allgemein"
+            },
+            {
+              "type": "text",
+              "attr": "melder",
+              "title": "Melder",
+              "width": "170px"
+            },
+            {
+              "type": "text",
+              "attr": "meldetext",
+              "title": "Meldetext",
+              "width": "280px",
+              "validator": "!!data.meldetext"
+            }
+          ]
+        }
+      }
+    },
+    "notifications": {
+      "type": "panel",
+      "label": "Benachrichtigungen",
+      "items": {
+        "telegramEnabled": {
+          "type": "checkbox",
+          "label": "Telegram aktivieren",
+          "sm": 4
+        },
+        "telegramInstance": {
+          "type": "instance",
+          "adapter": "telegram",
+          "label": "Telegram-Instanz",
+          "sm": 4,
+          "hidden": "!data.telegramEnabled"
+        },
+        "telegramUser": {
+          "type": "text",
+          "label": "Telegram-Benutzer (optional)",
+          "sm": 4,
+          "hidden": "!data.telegramEnabled"
+        },
+        "emailEnabled": {
+          "type": "checkbox",
+          "label": "E-Mail aktivieren",
+          "sm": 4,
+          "newLine": true
+        },
+        "emailInstance": {
+          "type": "instance",
+          "adapter": "email",
+          "label": "E-Mail-Instanz",
+          "sm": 4,
+          "hidden": "!data.emailEnabled"
+        },
+        "emailRecipient": {
+          "type": "text",
+          "label": "E-Mail-Empfänger",
+          "sm": 4,
+          "hidden": "!data.emailEnabled"
+        },
+        "emailSubjectPrefix": {
+          "type": "text",
+          "label": "Betreff-Präfix",
+          "sm": 4,
+          "newLine": true,
+          "hidden": "!data.emailEnabled"
+        },
+        "testNotification": {
+          "type": "sendTo",
+          "label": "Testnachricht senden",
+          "command": "testNotification",
+          "sm": 4,
+          "newLine": true
+        }
+      }
+    }
+  }
+}

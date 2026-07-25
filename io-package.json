@@ -1,0 +1,62 @@
+{
+  "common": {
+    "name": "stoerungsmanager",
+    "version": "0.1.0",
+    "titleLang": {
+      "en": "Fault Manager",
+      "de": "Störungsmanager"
+    },
+    "desc": {
+      "en": "Central fault detection, acknowledgement and notification",
+      "de": "Zentrale Störungserfassung, Quittierung und Benachrichtigung"
+    },
+    "authors": ["SystemSmart"],
+    "license": "MIT",
+    "platform": "Javascript/Node.js",
+    "mode": "daemon",
+    "type": "alarm",
+    "compact": true,
+    "connectionType": "local",
+    "dataSource": "push",
+    "enabled": true,
+    "messagebox": true,
+    "adminUI": {
+      "config": "json"
+    },
+    "dependencies": [
+      {"js-controller": ">=6.0.0"},
+      {"admin": ">=6.0.0"}
+    ],
+    "globalDependencies": []
+  },
+  "native": {
+    "rootPath": "0_userdata.0.Stoerungen",
+    "notifyActive": true,
+    "notifyAcknowledged": true,
+    "notifyCleared": true,
+    "telegramEnabled": false,
+    "telegramInstance": "telegram.0",
+    "telegramUser": "",
+    "emailEnabled": false,
+    "emailInstance": "email.0",
+    "emailRecipient": "",
+    "emailSubjectPrefix": "[Haus]",
+    "faults": []
+  },
+  "objects": [],
+  "instanceObjects": [
+    {
+      "_id": "info.connection",
+      "type": "state",
+      "common": {
+        "name": "Adapter active",
+        "type": "boolean",
+        "role": "indicator.connected",
+        "read": true,
+        "write": false,
+        "def": false
+      },
+      "native": {}
+    }
+  ]
+}
