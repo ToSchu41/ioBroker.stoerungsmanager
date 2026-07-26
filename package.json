@@ -1,15 +1,22 @@
 {
   "name": "iobroker.stoerungsmanager",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Central fault and alarm management for ioBroker",
-  "author": "SystemSmart",
-  "homepage": "https://github.com/SystemSmart/ioBroker.stoerungsmanager",
+  "author": "Tobias Schu / SystemSmart",
+  "homepage": "https://github.com/ToSchu41/ioBroker.stoerungsmanager",
   "license": "MIT",
   "main": "main.js",
   "engines": {
     "node": ">=20"
   },
-  "keywords": ["iobroker", "alarm", "fault", "notification", "telegram", "email"],
+  "keywords": [
+    "iobroker",
+    "alarm",
+    "fault",
+    "notification",
+    "telegram",
+    "email"
+  ],
   "dependencies": {
     "@iobroker/adapter-core": "^3.3.2"
   },
@@ -18,5 +25,12 @@
   },
   "scripts": {
     "test": "node --check main.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ToSchu41/ioBroker.stoerungsmanager.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ToSchu41/ioBroker.stoerungsmanager/issues"
   }
 }

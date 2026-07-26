@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "stoerungsmanager",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "titleLang": {
       "en": "Fault Manager",
       "de": "Störungsmanager"
@@ -10,7 +10,10 @@
       "en": "Central fault detection, acknowledgement and notification",
       "de": "Zentrale Störungserfassung, Quittierung und Benachrichtigung"
     },
-    "authors": ["SystemSmart"],
+    "authors": [
+      "Tobias Schu <ToSchu41>",
+      "SystemSmart"
+    ],
     "license": "MIT",
     "platform": "Javascript/Node.js",
     "mode": "daemon",
@@ -24,8 +27,12 @@
       "config": "json"
     },
     "dependencies": [
-      {"js-controller": ">=6.0.0"},
-      {"admin": ">=6.0.0"}
+      {
+        "js-controller": ">=6.0.0"
+      },
+      {
+        "admin": ">=6.0.0"
+      }
     ],
     "globalDependencies": []
   },
@@ -41,7 +48,8 @@
     "emailInstance": "email.0",
     "emailRecipient": "",
     "emailSubjectPrefix": "[Haus]",
-    "faults": []
+    "faults": [],
+    "conditions": []
   },
   "objects": [],
   "instanceObjects": [
