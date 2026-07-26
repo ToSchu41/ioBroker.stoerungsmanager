@@ -63,7 +63,9 @@ class Stoerungsmanager extends utils.Adapter {
                     regexFlags: '',
                     durationSec: 0,
                     timeoutSec: 600,
-                    pulseSec: 1
+                    pulseSec: 1,
+                    communicationMonitoring: false,
+                    communicationTimeoutSec: 600
                 }));
             if (configuredConditions.length > 0) {
                 this.log.info(`${configuredConditions.length} bestehende Einzelbedingung(en) aus Version 0.1.x wurden übernommen.`);
@@ -102,11 +104,15 @@ class Stoerungsmanager extends utils.Adapter {
                 key,
                 operator: rawCondition.operator || 'true',
                 durationSec: Math.max(0, Number(rawCondition.durationSec) || 0),
+                // timeoutSec bleibt ausschließlich für die Migration alter 0.2-Konfigurationen erhalten.
                 timeoutSec: Math.max(1, Number(rawCondition.timeoutSec) || 60),
                 pulseSec: Math.max(1, Number(rawCondition.pulseSec) || 1),
+                communicationMonitoring: rawCondition.communicationMonitoring === true,
+                communicationTimeoutSec: Math.max(1, Number(rawCondition.communicationTimeoutSec) || 600),
                 latestState: null,
                 previousValue: undefined,
                 rawMatch: false,
+                communicationTimedOut: false,
                 effectiveMatch: false,
                 initialized: false,
                 lastUpdate: 0
@@ -144,6 +150,7 @@ class Stoerungsmanager extends utils.Adapter {
                 } else {
                     this.log.warn(`Auslöser nicht gefunden: ${condition.sourceId}`);
                     if (condition.operator === 'timeout') this.armTimeout(condition);
+                    if (condition.communicationMonitoring) this.armCommunicationTimeout(condition);
                 }
             }
 
@@ -268,8 +275,16 @@ class Stoerungsmanager extends utils.Adapter {
         condition.latestState = state;
         condition.lastUpdate = Date.now();
 
+        // Jede Zustandsaktualisierung bestätigt die Kommunikation und startet den optionalen Timer neu.
+        if (condition.communicationMonitoring) {
+            condition.communicationTimedOut = false;
+            this.armCommunicationTimeout(condition);
+        }
+
+        // Unterstützung bestehender 0.2-Konfigurationen mit dem früheren Operator "timeout".
         if (condition.operator === 'timeout') {
             condition.rawMatch = false;
+            condition.communicationTimedOut = false;
             condition.effectiveMatch = false;
             condition.previousValue = state.val;
             condition.initialized = true;
@@ -295,6 +310,19 @@ class Stoerungsmanager extends utils.Adapter {
         condition.rawMatch = Boolean(match);
         const timer = this.durationTimers.get(condition.key);
 
+        // Ein Kommunikations-Timeout löst unabhängig vom Wertevergleich sofort aus.
+        if (condition.communicationTimedOut) {
+            if (timer) clearTimeout(timer);
+            this.durationTimers.delete(condition.key);
+            if (!condition.effectiveMatch) {
+                condition.effectiveMatch = true;
+                await this.evaluateFault(this.faults.get(condition.faultId), notify);
+            } else {
+                await this.updateConditionDetails(this.faults.get(condition.faultId));
+            }
+            return;
+        }
+
         if (!condition.rawMatch) {
             if (timer) clearTimeout(timer);
             this.durationTimers.delete(condition.key);
@@ -311,7 +339,7 @@ class Stoerungsmanager extends utils.Adapter {
             if (!timer) {
                 this.durationTimers.set(condition.key, setTimeout(async () => {
                     this.durationTimers.delete(condition.key);
-                    if (condition.rawMatch) {
+                    if (condition.rawMatch && !condition.communicationTimedOut) {
                         condition.effectiveMatch = true;
                         await this.evaluateFault(this.faults.get(condition.faultId), true);
                     }
@@ -339,6 +367,18 @@ class Stoerungsmanager extends utils.Adapter {
             condition.effectiveMatch = true;
             await this.evaluateFault(this.faults.get(condition.faultId), true);
         }, condition.timeoutSec * 1000));
+    }
+
+    armCommunicationTimeout(condition) {
+        const oldTimer = this.timeoutTimers.get(`communication::${condition.key}`);
+        if (oldTimer) clearTimeout(oldTimer);
+
+        this.timeoutTimers.set(`communication::${condition.key}`, setTimeout(async () => {
+            this.timeoutTimers.delete(`communication::${condition.key}`);
+            condition.communicationTimedOut = true;
+            condition.effectiveMatch = true;
+            await this.evaluateFault(this.faults.get(condition.faultId), true);
+        }, condition.communicationTimeoutSec * 1000));
     }
 
     armPulseReset(condition) {
@@ -393,6 +433,9 @@ class Stoerungsmanager extends utils.Adapter {
             rohErfuellt: condition.rawMatch,
             letzteAenderung: condition.latestState?.lc || condition.latestState?.ts || null,
             timeoutSekunden: condition.operator === 'timeout' ? condition.timeoutSec : 0,
+            kommunikationsueberwachung: condition.communicationMonitoring,
+            kommunikationsTimeoutSekunden: condition.communicationMonitoring ? condition.communicationTimeoutSec : 0,
+            kommunikationsTimeoutAktiv: condition.communicationTimedOut,
             verzoegerungSekunden: condition.durationSec
         }));
     }
@@ -451,7 +494,10 @@ class Stoerungsmanager extends utils.Adapter {
                         ? `${condition.timeoutSec} Sekunden`
                         : condition.compareValue ?? '',
                 wert: condition.latestState?.val ?? 'nicht vorhanden',
-                erfuellt: condition.effectiveMatch
+                erfuellt: condition.effectiveMatch,
+                kommunikationsueberwachung: condition.communicationMonitoring,
+                kommunikationsTimeoutSekunden: condition.communicationTimeoutSec,
+                kommunikationsTimeoutAktiv: condition.communicationTimedOut
             }))
         };
     }
@@ -476,6 +522,12 @@ class Stoerungsmanager extends utils.Adapter {
                 `  Aktueller Wert: ${String(condition.wert)}`,
                 `  Erfüllt: ${condition.erfuellt ? 'Ja' : 'Nein'}`
             );
+            if (condition.kommunikationsueberwachung) {
+                lines.push(
+                    `  Kommunikationsüberwachung: ${condition.kommunikationsTimeoutSekunden} s`,
+                    `  Kommunikations-Timeout: ${condition.kommunikationsTimeoutAktiv ? 'Ja' : 'Nein'}`
+                );
+            }
         }
 
         lines.push('', `Störungs-ID: ${info.id}`, `Zeitpunkt: ${info.zeitpunkt}`);

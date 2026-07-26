@@ -46,8 +46,13 @@
           "clone": "id",
           "export": true,
           "import": true,
-          "uniqueColumns": ["id"],
-          "useCardFor": ["xs", "sm"],
+          "uniqueColumns": [
+            "id"
+          ],
+          "useCardFor": [
+            "xs",
+            "sm"
+          ],
           "titleAttribute": "meldetext",
           "items": [
             {
@@ -72,8 +77,14 @@
               "width": "120px",
               "default": "AND",
               "options": [
-                {"label": "UND", "value": "AND"},
-                {"label": "ODER", "value": "OR"}
+                {
+                  "label": "UND",
+                  "value": "AND"
+                },
+                {
+                  "label": "ODER",
+                  "value": "OR"
+                }
               ]
             },
             {
@@ -106,7 +117,7 @@
       "items": {
         "conditionInfo": {
           "type": "staticText",
-          "text": "Ordne jede Bedingung über die Störungs-ID einer Regel zu. 'Verzögerung' bedeutet: Die Bedingung muss so lange ununterbrochen erfüllt sein. Bei Timeout wird ausgelöst, wenn der Datenpunkt innerhalb der eingestellten Zeit kein neues Telegramm liefert.",
+          "text": "Ordne jede Bedingung über die Störungs-ID einer Regel zu. Es werden nur die zur gewählten Bedingung passenden Eingabefelder angezeigt. Verzögerung und Kommunikationsüberwachung sind optional. Bei aktivierter Kommunikationsüberwachung wird zusätzlich eine Störung erkannt, wenn der Datenpunkt innerhalb der eingestellten Zeit keine neue Zustandsaktualisierung liefert.",
           "newLine": true
         },
         "conditions": {
@@ -117,7 +128,11 @@
           "clone": "id",
           "export": true,
           "import": true,
-          "useCardFor": ["xs", "sm"],
+          "useCardFor": [
+            "xs",
+            "sm",
+            "md"
+          ],
           "titleAttribute": "id",
           "items": [
             {
@@ -132,7 +147,9 @@
               "attr": "faultId",
               "title": "Störungs-ID",
               "width": "160px",
-              "validator": "!!data.faultId"
+              "validator": "!!data.faultId",
+              "validatorErrorText": "Störungs-ID fehlt",
+              "validatorNoSaveOnError": true
             },
             {
               "type": "text",
@@ -140,85 +157,162 @@
               "title": "Bedingungs-ID",
               "width": "160px",
               "default": "Bedingung_1",
-              "validator": "!!data.id"
+              "validator": "!!data.id",
+              "validatorErrorText": "Bedingungs-ID fehlt",
+              "validatorNoSaveOnError": true
             },
             {
               "type": "objectId",
               "attr": "sourceId",
               "title": "Überwachtes Objekt",
-              "types": ["state"],
+              "types": [
+                "state"
+              ],
               "width": "300px",
-              "validator": "!!data.sourceId"
+              "validator": "!!data.sourceId",
+              "validatorErrorText": "Überwachtes Objekt fehlt",
+              "validatorNoSaveOnError": true
             },
             {
               "type": "select",
               "attr": "operator",
               "title": "Bedingung",
-              "width": "170px",
+              "width": "180px",
               "default": "true",
               "options": [
-                {"label": "Wert =", "value": "eq"},
-                {"label": "Wert ≠", "value": "neq"},
-                {"label": "größer", "value": "gt"},
-                {"label": "größer oder gleich", "value": "gte"},
-                {"label": "kleiner", "value": "lt"},
-                {"label": "kleiner oder gleich", "value": "lte"},
-                {"label": "zwischen", "value": "between"},
-                {"label": "außerhalb", "value": "outside"},
-                {"label": "bool true", "value": "true"},
-                {"label": "bool false", "value": "false"},
-                {"label": "String enthält", "value": "contains"},
-                {"label": "String enthält nicht", "value": "notContains"},
-                {"label": "Regex", "value": "regex"},
-                {"label": "Änderung", "value": "change"},
-                {"label": "Flanke 0 → 1", "value": "rising"},
-                {"label": "Flanke 1 → 0", "value": "falling"},
-                {"label": "Timeout", "value": "timeout"}
+                {
+                  "label": "Wert =",
+                  "value": "eq"
+                },
+                {
+                  "label": "Wert ≠",
+                  "value": "neq"
+                },
+                {
+                  "label": "größer",
+                  "value": "gt"
+                },
+                {
+                  "label": "größer oder gleich",
+                  "value": "gte"
+                },
+                {
+                  "label": "kleiner",
+                  "value": "lt"
+                },
+                {
+                  "label": "kleiner oder gleich",
+                  "value": "lte"
+                },
+                {
+                  "label": "zwischen",
+                  "value": "between"
+                },
+                {
+                  "label": "außerhalb",
+                  "value": "outside"
+                },
+                {
+                  "label": "bool true",
+                  "value": "true"
+                },
+                {
+                  "label": "bool false",
+                  "value": "false"
+                },
+                {
+                  "label": "String enthält",
+                  "value": "contains"
+                },
+                {
+                  "label": "String enthält nicht",
+                  "value": "notContains"
+                },
+                {
+                  "label": "Regex",
+                  "value": "regex"
+                },
+                {
+                  "label": "Änderung",
+                  "value": "change"
+                },
+                {
+                  "label": "Flanke 0 → 1",
+                  "value": "rising"
+                },
+                {
+                  "label": "Flanke 1 → 0",
+                  "value": "falling"
+                }
               ]
             },
             {
               "type": "text",
               "attr": "compareValue",
-              "title": "Wert 1 / Regex",
-              "width": "150px"
+              "title": "Vergleichswert / Regex",
+              "width": "170px",
+              "hidden": "!['eq','neq','gt','gte','lt','lte','between','outside','contains','notContains','regex'].includes(data.operator)",
+              "validator": "!['eq','neq','gt','gte','lt','lte','between','outside','contains','notContains','regex'].includes(data.operator) || String(data.compareValue ?? '').length > 0",
+              "validatorErrorText": "Vergleichswert fehlt",
+              "validatorNoSaveOnError": true
             },
             {
               "type": "text",
               "attr": "compareValue2",
-              "title": "Wert 2",
-              "width": "110px"
+              "title": "Zweiter Wert",
+              "width": "120px",
+              "hidden": "!['between','outside'].includes(data.operator)",
+              "validator": "!['between','outside'].includes(data.operator) || String(data.compareValue2 ?? '').length > 0",
+              "validatorErrorText": "Zweiter Vergleichswert fehlt",
+              "validatorNoSaveOnError": true
             },
             {
               "type": "text",
               "attr": "regexFlags",
               "title": "Regex-Flags",
-              "width": "100px"
+              "width": "105px",
+              "hidden": "data.operator !== 'regex'",
+              "placeholder": "z. B. i"
             },
             {
               "type": "number",
               "attr": "durationSec",
               "title": "Verzögerung (s)",
-              "width": "130px",
+              "width": "135px",
               "min": 0,
-              "default": 0
-            },
-            {
-              "type": "number",
-              "attr": "timeoutSec",
-              "title": "Timeout (s)",
-              "width": "120px",
-              "min": 1,
-              "default": 600
+              "default": 0,
+              "help": "0 = keine Verzögerung"
             },
             {
               "type": "number",
               "attr": "pulseSec",
               "title": "Impulsdauer (s)",
-              "width": "130px",
+              "width": "135px",
               "min": 1,
-              "default": 1
+              "default": 1,
+              "hidden": "!['change','rising','falling'].includes(data.operator)"
+            },
+            {
+              "type": "checkbox",
+              "attr": "communicationMonitoring",
+              "title": "Kommunikation überwachen",
+              "width": "170px",
+              "default": false
+            },
+            {
+              "type": "number",
+              "attr": "communicationTimeoutSec",
+              "title": "Kein Update nach (s)",
+              "width": "155px",
+              "min": 1,
+              "default": 600,
+              "hidden": "!data.communicationMonitoring",
+              "validator": "!data.communicationMonitoring || Number(data.communicationTimeoutSec) > 0",
+              "validatorErrorText": "Timeout muss größer als 0 sein",
+              "validatorNoSaveOnError": true
             }
-          ]
+          ],
+          "compact": false
         }
       }
     },
