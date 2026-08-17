@@ -4,7 +4,18 @@ Ein regelbasierter Störungsmanager für ioBroker zur zentralen Erfassung, Auswe
 
 Der Adapter überwacht beliebige ioBroker-Zustände, verknüpft mehrere Bedingungen zu Störungsregeln und legt die zugehörigen Meldedaten unter einem frei definierbaren Objektpfad ab. Benachrichtigungen können über den Telegram- und den E-Mail-Adapter versendet werden.
 
-> Entwicklungsstand: Version 0.3.0. Der Adapter wird aktuell außerhalb des offiziellen ioBroker-Repositorys über GitHub installiert.
+> Entwicklungsstand: Version 0.4.0. Der Adapter wird aktuell außerhalb des offiziellen ioBroker-Repositorys über GitHub installiert.
+
+## Neuerungen in Version 0.4.0
+
+- Hysterese für numerische Grenzwertbedingungen
+- Hysterese wirkt auf die Rückschaltschwelle und verhindert Flattern am Grenzwert
+- Frei konfigurierbare Telegram-Texte für Aktiv, Quittiert und Behoben
+- Frei konfigurierbare E-Mail-Texte für Aktiv, Quittiert und Behoben
+- Frei konfigurierbare E-Mail-Betreffzeilen je Zustandsänderung
+- Platzhaltersystem für Störungs- und Bedingungsinformationen
+- Hysterese wird in den Bedingungsdetails und im Platzhalter `{Bedingungen}` ausgegeben
+- Bestehende Konfigurationen aus Version 0.3.0 bleiben nutzbar; neue Felder erhalten Standardwerte
 
 ## Funktionen
 
@@ -16,10 +27,13 @@ Der Adapter überwacht beliebige ioBroker-Zustände, verknüpft mehrere Bedingun
 - Reguläre Ausdrücke
 - Erkennung von Wertänderungen und Signalflanken
 - Optionale Einschaltverzögerung je Bedingung
+- Optionale Hysterese für numerische Grenzwertbedingungen
 - Optionale Kommunikationsüberwachung je Bedingung
 - Automatische Quittierungslogik
 - Automatische Rücksetzung behobener Störungen
 - Telegram- und E-Mail-Benachrichtigungen
+- Frei konfigurierbare Nachrichtenvorlagen für Aktiv, Quittiert und Behoben
+- Platzhalter in Telegram-Nachrichten und E-Mail-Betreff/-Text
 - Vollständige Informationen zu allen Bedingungen in jeder Benachrichtigung
 - JSON-Datenpunkt mit den aktuellen Bedingungsdetails
 - Übernahme bestehender Konfigurationen aus Version 0.1.x und 0.2.x
@@ -70,9 +84,9 @@ Wenn das Repository bereits Version 0.1.0 oder 0.2.0 enthält:
 2. Das GitHub-Repository im Browser öffnen.
 3. **Add file → Upload files** auswählen.
 4. Den Inhalt des entpackten Adapterordners hochladen. `package.json` muss anschließend direkt im Hauptverzeichnis des Repositorys liegen.
-5. Als Commit-Nachricht beispielsweise `Update auf Version 0.3.0` eintragen.
+5. Als Commit-Nachricht beispielsweise `Update auf Version 0.4.0` eintragen.
 6. Direkt in den Branch `main` committen.
-7. Prüfen, ob `package.json` und `io-package.json` jeweils die Version `0.3.0` enthalten.
+7. Prüfen, ob `package.json` und `io-package.json` jeweils die Version `0.4.0` enthalten.
 8. Adapter in ioBroker erneut über die GitHub-URL installieren und danach hochladen beziehungsweise neu starten.
 
 Die vorhandene Instanz muss normalerweise nicht gelöscht werden. Dadurch bleibt die bisherige Adapterkonfiguration erhalten.
@@ -176,6 +190,53 @@ Optional können Regex-Flags angegeben werden. Mit `i` erfolgt die Prüfung ohne
 
 Ereignisbedingungen erzeugen einen zeitlich begrenzten Impuls. Die Impulsdauer wird in Sekunden eingestellt. Standardwert ist eine Sekunde.
 
+## Hysterese bei Zahlenwerten
+
+Für numerische Grenzwertbedingungen kann optional eine Hysterese eingetragen werden. Sie verhindert, dass eine Störung bei kleinen Schwankungen um einen Grenzwert ständig ein- und ausgeschaltet wird.
+
+Die Hysterese verändert **nicht** die Einschaltgrenze. Sie wirkt ausschließlich auf die Rückschaltschwelle.
+
+### Beispiel: Temperatur größer als 30 °C
+
+```text
+Bedingung: größer
+Vergleichswert: 30
+Hysterese: 2
+```
+
+Verhalten:
+
+- Störung wird aktiv, sobald die Temperatur **größer als 30 °C** ist.
+- Die Störung bleibt aktiv, solange die Temperatur über der Rückschaltschwelle liegt.
+- Sie wird erst zurückgesetzt, wenn die Temperatur auf **28 °C oder darunter** fällt.
+
+Damit führen Schwankungen wie `29,9 → 30,1 → 29,8 → 30,2 °C` nicht zu ständig wechselnden Störmeldungen.
+
+### Beispiel: Temperatur kleiner als 5 °C
+
+```text
+Bedingung: kleiner
+Vergleichswert: 5
+Hysterese: 2
+```
+
+Die Störung wird unter 5 °C aktiv und erst oberhalb des um die Hysterese verschobenen Rücksetzbereichs wieder aufgehoben.
+
+### Unterstützte Operatoren
+
+Die Hysterese wird bei folgenden numerischen Bedingungen angeboten:
+
+- größer
+- größer oder gleich
+- kleiner
+- kleiner oder gleich
+- zwischen
+- außerhalb
+
+Bei `zwischen` wird der Rücksetzbereich nach außen erweitert. Bei `außerhalb` muss der Wert entsprechend weiter in den Normalbereich zurückkehren.
+
+`0` bedeutet: keine Hysterese.
+
 ## Optionale Einschaltverzögerung
 
 Die Einschaltverzögerung legt fest, wie lange eine Wertebedingung ununterbrochen erfüllt sein muss, bevor sie als aktive Bedingung gewertet wird.
@@ -231,6 +292,76 @@ Die Admin-Oberfläche zeigt nur die zur jeweiligen Bedingung passenden Felder:
 - Das Kommunikations-Timeout erscheint nur bei aktivierter Kommunikationsüberwachung.
 
 Pflichtfelder werden vor dem Speichern geprüft. Ein Kommunikations-Timeout ist nur dann Pflicht, wenn die Kommunikationsüberwachung aktiviert wurde.
+
+## Benachrichtigungen und Vorlagen
+
+Telegram und E-Mail können unabhängig voneinander aktiviert werden. Für beide Kanäle stehen getrennte Vorlagen für die drei Ereignisse zur Verfügung:
+
+- Störung aktiv
+- Störung quittiert
+- Störung behoben
+
+Für E-Mail kann zusätzlich für jedes Ereignis ein eigener Betreff definiert werden. Die Eingabefelder sind mehrzeilig, sodass auch umfangreichere Meldungen aufgebaut werden können.
+
+### Verfügbare Platzhalter
+
+| Platzhalter | Inhalt |
+|---|---|
+| `{Meldetext}` | Konfigurierter Meldetext der Störung |
+| `{Melder}` | Name des Melders |
+| `{Meldegruppe}` | Zugeordnete Meldegruppe |
+| `{Bedingungen}` | Mehrzeilige Übersicht aller Bedingungen inklusive aktuellem Wert und Erfüllungszustand |
+| `{Zustand}` | Neuer Meldezustand |
+| `{VorherigerZustand}` | Zustand vor der Änderung |
+| `{StoerungsID}` | Eindeutige Störungs-ID |
+| `{Zeitpunkt}` | Zeitpunkt der Meldung |
+| `{Ausloeser}` | Liste der überwachten ioBroker-Datenpunkte |
+| `{Ausloeserwert}` | Aktuelle Werte der Auslöser |
+| `{Logik}` | Regelverknüpfung `AND` oder `OR` |
+
+Unbekannte Platzhalter bleiben unverändert im Text stehen. Dadurch werden Tippfehler nicht stillschweigend gelöscht.
+
+### Beispiel für Telegram
+
+```text
+🚨 {Meldegruppe}
+
+{Meldetext}
+
+Melder: {Melder}
+Zustand: {Zustand}
+Vorher: {VorherigerZustand}
+
+{Bedingungen}
+
+Zeitpunkt: {Zeitpunkt}
+ID: {StoerungsID}
+```
+
+### Beispiel für einen E-Mail-Betreff
+
+```text
+[{Meldegruppe}] {Zustand}: {Meldetext}
+```
+
+### Platzhalter `{Bedingungen}`
+
+Dieser Platzhalter erzeugt automatisch eine Übersicht aller zur Störung gehörenden Bedingungen. Beispiel:
+
+```text
+- Temperatur_hoch: modbus.0.heizung.vorlauftemperatur
+  Bedingung: > 80
+  Aktueller Wert: 84.3
+  Erfüllt: Ja
+  Hysterese: 2
+
+- Pumpe_aus: modbus.0.heizung.pumpe
+  Bedingung: ist falsch
+  Aktueller Wert: false
+  Erfüllt: Ja
+```
+
+Ist für eine Bedingung zusätzlich die Kommunikationsüberwachung aktiviert, wird auch deren Timeout-Status ausgegeben.
 
 ## Objektstruktur
 

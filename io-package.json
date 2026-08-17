@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "stoerungsmanager",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "titleLang": {
       "en": "Fault Manager",
       "de": "Störungsmanager"
@@ -47,9 +47,17 @@
     "emailEnabled": false,
     "emailInstance": "email.0",
     "emailRecipient": "",
-    "emailSubjectPrefix": "[Haus]",
     "faults": [],
-    "conditions": []
+    "conditions": [],
+    "telegramTemplateActive": "🚨 Störmeldung im Haus\n\nMeldetext: {Meldetext}\nMeldegruppe: {Meldegruppe}\nMelder: {Melder}\n\nZustand: {Zustand}\nVorheriger Zustand: {VorherigerZustand}\n\n{Bedingungen}\n\nStörungs-ID: {StoerungsID}\nZeitpunkt: {Zeitpunkt}",
+    "telegramTemplateAcknowledged": "☑️ Störmeldung quittiert\n\n{Meldetext}\nMelder: {Melder}\nZustand: {Zustand}\nVorheriger Zustand: {VorherigerZustand}\n\n{Bedingungen}\n\nZeitpunkt: {Zeitpunkt}",
+    "telegramTemplateCleared": "✅ Störung behoben\n\n{Meldetext}\nMelder: {Melder}\nZustand: {Zustand}\nVorheriger Zustand: {VorherigerZustand}\n\nZeitpunkt: {Zeitpunkt}",
+    "emailSubjectActive": "[Haus] {Zustand}: {Meldetext}",
+    "emailTemplateActive": "🚨 Störmeldung im Haus\n\nMeldetext: {Meldetext}\nMeldegruppe: {Meldegruppe}\nMelder: {Melder}\n\nZustand: {Zustand}\nVorheriger Zustand: {VorherigerZustand}\n\n{Bedingungen}\n\nStörungs-ID: {StoerungsID}\nZeitpunkt: {Zeitpunkt}",
+    "emailSubjectAcknowledged": "[Haus] {Zustand}: {Meldetext}",
+    "emailTemplateAcknowledged": "☑️ Störmeldung quittiert\n\n{Meldetext}\nMelder: {Melder}\nZustand: {Zustand}\nVorheriger Zustand: {VorherigerZustand}\n\n{Bedingungen}\n\nZeitpunkt: {Zeitpunkt}",
+    "emailSubjectCleared": "[Haus] {Zustand}: {Meldetext}",
+    "emailTemplateCleared": "✅ Störung behoben\n\n{Meldetext}\nMelder: {Melder}\nZustand: {Zustand}\nVorheriger Zustand: {VorherigerZustand}\n\nZeitpunkt: {Zeitpunkt}"
   },
   "objects": [],
   "instanceObjects": [

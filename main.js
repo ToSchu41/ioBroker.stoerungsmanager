@@ -65,7 +65,8 @@ class Stoerungsmanager extends utils.Adapter {
                     timeoutSec: 600,
                     pulseSec: 1,
                     communicationMonitoring: false,
-                    communicationTimeoutSec: 600
+                    communicationTimeoutSec: 600,
+                    hysteresis: 0
                 }));
             if (configuredConditions.length > 0) {
                 this.log.info(`${configuredConditions.length} bestehende Einzelbedingung(en) aus Version 0.1.x wurden übernommen.`);
@@ -109,6 +110,7 @@ class Stoerungsmanager extends utils.Adapter {
                 pulseSec: Math.max(1, Number(rawCondition.pulseSec) || 1),
                 communicationMonitoring: rawCondition.communicationMonitoring === true,
                 communicationTimeoutSec: Math.max(1, Number(rawCondition.communicationTimeoutSec) || 600),
+                hysteresis: Math.max(0, Number(rawCondition.hysteresis) || 0),
                 latestState: null,
                 previousValue: undefined,
                 rawMatch: false,
@@ -220,25 +222,53 @@ class Stoerungsmanager extends utils.Adapter {
     compareValue(condition, actual, previousValue) {
         const expected = condition.compareValue;
         const expected2 = condition.compareValue2;
+        const hysteresis = Math.max(0, Number(condition.hysteresis) || 0);
+        const wasMatched = Boolean(condition.rawMatch);
+        const numericActual = Number(actual);
+        const numericExpected = Number(expected);
+        const numericExpected2 = Number(expected2);
 
         switch (condition.operator) {
             case 'true': return actual === true || actual === 1 || actual === 'true' || actual === '1';
             case 'false': return actual === false || actual === 0 || actual === 'false' || actual === '0';
             case 'eq': return this.valuesEqual(actual, expected);
             case 'neq': return !this.valuesEqual(actual, expected);
-            case 'gt': return Number(actual) > Number(expected);
-            case 'gte': return Number(actual) >= Number(expected);
-            case 'lt': return Number(actual) < Number(expected);
-            case 'lte': return Number(actual) <= Number(expected);
+            case 'gt':
+                return wasMatched && hysteresis > 0
+                    ? numericActual > numericExpected - hysteresis
+                    : numericActual > numericExpected;
+            case 'gte':
+                return wasMatched && hysteresis > 0
+                    ? numericActual >= numericExpected - hysteresis
+                    : numericActual >= numericExpected;
+            case 'lt':
+                return wasMatched && hysteresis > 0
+                    ? numericActual < numericExpected + hysteresis
+                    : numericActual < numericExpected;
+            case 'lte':
+                return wasMatched && hysteresis > 0
+                    ? numericActual <= numericExpected + hysteresis
+                    : numericActual <= numericExpected;
             case 'between': {
-                const min = Math.min(Number(expected), Number(expected2));
-                const max = Math.max(Number(expected), Number(expected2));
-                return Number(actual) >= min && Number(actual) <= max;
+                const min = Math.min(numericExpected, numericExpected2);
+                const max = Math.max(numericExpected, numericExpected2);
+                if (wasMatched && hysteresis > 0) {
+                    return numericActual >= min - hysteresis && numericActual <= max + hysteresis;
+                }
+                return numericActual >= min && numericActual <= max;
             }
             case 'outside': {
-                const min = Math.min(Number(expected), Number(expected2));
-                const max = Math.max(Number(expected), Number(expected2));
-                return Number(actual) < min || Number(actual) > max;
+                const min = Math.min(numericExpected, numericExpected2);
+                const max = Math.max(numericExpected, numericExpected2);
+                if (wasMatched && hysteresis > 0) {
+                    const resetMin = min + hysteresis;
+                    const resetMax = max - hysteresis;
+                    if (resetMin >= resetMax) {
+                        return numericActual < min || numericActual > max;
+                    }
+                    return numericActual < resetMin || numericActual > resetMax;
+                }
+                return numericActual < min || numericActual > max;
             }
             case 'contains': return String(actual).includes(String(expected));
             case 'notContains': return !String(actual).includes(String(expected));
@@ -436,7 +466,8 @@ class Stoerungsmanager extends utils.Adapter {
             kommunikationsueberwachung: condition.communicationMonitoring,
             kommunikationsTimeoutSekunden: condition.communicationMonitoring ? condition.communicationTimeoutSec : 0,
             kommunikationsTimeoutAktiv: condition.communicationTimedOut,
-            verzoegerungSekunden: condition.durationSec
+            verzoegerungSekunden: condition.durationSec,
+            hysterese: condition.hysteresis || 0
         }));
     }
 
@@ -497,24 +528,34 @@ class Stoerungsmanager extends utils.Adapter {
                 erfuellt: condition.effectiveMatch,
                 kommunikationsueberwachung: condition.communicationMonitoring,
                 kommunikationsTimeoutSekunden: condition.communicationTimeoutSec,
-                kommunikationsTimeoutAktiv: condition.communicationTimedOut
+                kommunikationsTimeoutAktiv: condition.communicationTimedOut,
+                hysterese: condition.hysteresis || 0
             }))
         };
     }
 
-    formatMessage(info) {
-        const symbol = info.meldezustand === 'Störung aktiv' ? '🚨' : info.meldezustand === 'Störung quittiert' ? '☑️' : '✅';
-        const lines = [
-            `${symbol} Störmeldung im Haus`, '',
-            `Meldetext: ${info.meldetext}`,
-            `Meldegruppe: ${info.meldegruppe}`,
-            `Melder: ${info.melder}`, '',
-            `Zustand: ${info.meldezustand}`,
-            `Vorheriger Zustand: ${info.vorherigerZustand}`,
-            `Regelverknüpfung: ${info.logik}`, '',
-            'Bedingungen:'
-        ];
+    defaultTemplate(state, channel = 'telegram') {
+        const symbol = state === 1 ? '🚨' : state === 2 ? '☑️' : '✅';
+        const header = channel === 'email' ? `${symbol} {Zustand}: {Meldetext}` : `${symbol} Störmeldung im Haus`;
+        return [
+            header,
+            '',
+            'Meldetext: {Meldetext}',
+            'Meldegruppe: {Meldegruppe}',
+            'Melder: {Melder}',
+            '',
+            'Zustand: {Zustand}',
+            'Vorheriger Zustand: {VorherigerZustand}',
+            '',
+            '{Bedingungen}',
+            '',
+            'Störungs-ID: {StoerungsID}',
+            'Zeitpunkt: {Zeitpunkt}'
+        ].join('\n');
+    }
 
+    conditionsText(info) {
+        const lines = [];
         for (const condition of info.bedingungen) {
             lines.push(
                 `- ${condition.id}: ${condition.ausloeser}`,
@@ -522,6 +563,7 @@ class Stoerungsmanager extends utils.Adapter {
                 `  Aktueller Wert: ${String(condition.wert)}`,
                 `  Erfüllt: ${condition.erfuellt ? 'Ja' : 'Nein'}`
             );
+            if (condition.hysterese > 0) lines.push(`  Hysterese: ${condition.hysterese}`);
             if (condition.kommunikationsueberwachung) {
                 lines.push(
                     `  Kommunikationsüberwachung: ${condition.kommunikationsTimeoutSekunden} s`,
@@ -529,26 +571,66 @@ class Stoerungsmanager extends utils.Adapter {
                 );
             }
         }
-
-        lines.push('', `Störungs-ID: ${info.id}`, `Zeitpunkt: ${info.zeitpunkt}`);
         return lines.join('\n');
+    }
+
+    templateValues(info) {
+        return {
+            Meldetext: info.meldetext,
+            Melder: info.melder,
+            Meldegruppe: info.meldegruppe,
+            Bedingungen: this.conditionsText(info),
+            Zustand: info.meldezustand,
+            VorherigerZustand: info.vorherigerZustand,
+            StoerungsID: info.id,
+            Zeitpunkt: info.zeitpunkt,
+            Ausloeser: info.bedingungen.map(condition => condition.ausloeser).filter(Boolean).join(', '),
+            Ausloeserwert: info.bedingungen.map(condition => `${condition.id}: ${String(condition.wert)}`).join(', '),
+            Logik: info.logik
+        };
+    }
+
+    renderTemplate(template, info) {
+        const values = this.templateValues(info);
+        return String(template || '').replace(/\{([A-Za-z0-9_]+)\}/g, (match, key) =>
+            Object.prototype.hasOwnProperty.call(values, key) ? String(values[key]) : match
+        );
+    }
+
+    templateFor(channel, state) {
+        const suffix = state === 1 ? 'Active' : state === 2 ? 'Acknowledged' : 'Cleared';
+        const key = `${channel}Template${suffix}`;
+        return this.config[key] || this.defaultTemplate(state, channel);
+    }
+
+    emailSubjectFor(state) {
+        const suffix = state === 1 ? 'Active' : state === 2 ? 'Acknowledged' : 'Cleared';
+        const key = `emailSubject${suffix}`;
+        const defaults = {
+            1: '[Haus] {Zustand}: {Meldetext}',
+            2: '[Haus] {Zustand}: {Meldetext}',
+            0: '[Haus] {Zustand}: {Meldetext}'
+        };
+        return this.config[key] || defaults[state];
     }
 
     async notify(fault, oldState, newState) {
         if (!this.shouldNotify(newState)) return;
         const info = await this.collectInfo(fault, oldState, newState);
-        const text = this.formatMessage(info);
 
         if (this.config.telegramEnabled && this.config.telegramInstance) {
+            const text = this.renderTemplate(this.templateFor('telegram', newState), info);
             const message = { text };
             if (this.config.telegramUser) message.user = this.config.telegramUser;
             this.sendTo(this.config.telegramInstance, 'send', message);
         }
 
         if (this.config.emailEnabled && this.config.emailInstance && this.config.emailRecipient) {
+            const text = this.renderTemplate(this.templateFor('email', newState), info);
+            const subject = this.renderTemplate(this.emailSubjectFor(newState), info);
             this.sendTo(this.config.emailInstance, {
                 to: this.config.emailRecipient,
-                subject: `${this.config.emailSubjectPrefix || '[Haus]'} ${info.meldezustand}: ${info.meldetext}`,
+                subject,
                 text
             });
         }

@@ -267,6 +267,16 @@
               "validatorNoSaveOnError": true
             },
             {
+              "type": "number",
+              "attr": "hysteresis",
+              "title": "Hysterese",
+              "width": "120px",
+              "min": 0,
+              "default": 0,
+              "hidden": "!['gt','gte','lt','lte','between','outside'].includes(data.operator)",
+              "help": "0 = keine Hysterese. Wirkt nur auf die Rückschaltschwelle."
+            },
+            {
               "type": "text",
               "attr": "regexFlags",
               "title": "Regex-Flags",
@@ -322,7 +332,7 @@
       "items": {
         "notificationInfo": {
           "type": "staticText",
-          "text": "Die Nachricht enthält Meldegruppe, Melder, Meldetext, Regelverknüpfung sowie alle Auslöser, Bedingungen, aktuellen Werte und Erfüllungszustände.",
+          "text": "Benachrichtigungstexte können frei angepasst werden. Verfügbare Platzhalter: {Meldetext}, {Melder}, {Meldegruppe}, {Bedingungen}, {Zustand}, {VorherigerZustand}, {StoerungsID}, {Zeitpunkt}, {Ausloeser}, {Ausloeserwert}, {Logik}.",
           "newLine": true
         },
         "telegramEnabled": {
@@ -343,6 +353,36 @@
           "sm": 4,
           "hidden": "!data.telegramEnabled"
         },
+        "telegramTemplateActive": {
+          "type": "text",
+          "label": "Telegram – Störung aktiv",
+          "sm": 12,
+          "newLine": true,
+          "minRows": 5,
+          "maxRows": 12,
+          "hidden": "!data.telegramEnabled",
+          "trim": false
+        },
+        "telegramTemplateAcknowledged": {
+          "type": "text",
+          "label": "Telegram – Störung quittiert",
+          "sm": 12,
+          "newLine": true,
+          "minRows": 5,
+          "maxRows": 12,
+          "hidden": "!data.telegramEnabled",
+          "trim": false
+        },
+        "telegramTemplateCleared": {
+          "type": "text",
+          "label": "Telegram – Störung behoben",
+          "sm": 12,
+          "newLine": true,
+          "minRows": 5,
+          "maxRows": 12,
+          "hidden": "!data.telegramEnabled",
+          "trim": false
+        },
         "emailEnabled": {
           "type": "checkbox",
           "label": "E-Mail aktivieren",
@@ -362,12 +402,56 @@
           "sm": 4,
           "hidden": "!data.emailEnabled"
         },
-        "emailSubjectPrefix": {
+        "emailSubjectActive": {
           "type": "text",
-          "label": "Betreff-Präfix",
-          "sm": 4,
+          "label": "Betreff – Störung aktiv",
+          "sm": 12,
           "newLine": true,
           "hidden": "!data.emailEnabled"
+        },
+        "emailTemplateActive": {
+          "type": "text",
+          "label": "E-Mail – Störung aktiv",
+          "sm": 12,
+          "newLine": true,
+          "minRows": 5,
+          "maxRows": 12,
+          "hidden": "!data.emailEnabled",
+          "trim": false
+        },
+        "emailSubjectAcknowledged": {
+          "type": "text",
+          "label": "Betreff – Störung quittiert",
+          "sm": 12,
+          "newLine": true,
+          "hidden": "!data.emailEnabled"
+        },
+        "emailTemplateAcknowledged": {
+          "type": "text",
+          "label": "E-Mail – Störung quittiert",
+          "sm": 12,
+          "newLine": true,
+          "minRows": 5,
+          "maxRows": 12,
+          "hidden": "!data.emailEnabled",
+          "trim": false
+        },
+        "emailSubjectCleared": {
+          "type": "text",
+          "label": "Betreff – Störung behoben",
+          "sm": 12,
+          "newLine": true,
+          "hidden": "!data.emailEnabled"
+        },
+        "emailTemplateCleared": {
+          "type": "text",
+          "label": "E-Mail – Störung behoben",
+          "sm": 12,
+          "newLine": true,
+          "minRows": 5,
+          "maxRows": 12,
+          "hidden": "!data.emailEnabled",
+          "trim": false
         },
         "testNotification": {
           "type": "sendTo",
